@@ -1,14 +1,21 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": [
+    "tsconfig.json"
+  ],
   "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [
+        ".next/**",
+        "dist/**",
+        "build/**"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": []
     },
     "check-types": {
       "dependsOn": ["^check-types"]
