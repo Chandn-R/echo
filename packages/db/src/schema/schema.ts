@@ -1,0 +1,108 @@
+import { pgTable, text, uuid, jsonb, timestamp, date, boolean, integer, primaryKey, index } from "drizzle-orm/pg-core";
+
+export const users = pgTable("Users", {
+
+    userId: uuid("UserId").defaultRandom().primaryKey(),
+    name: text("Name").notNull(),
+    userName: text("UserName").notNull().unique(),
+    email: text("Email").notNull().unique(),
+    password: text("Password").notNull(),
+    profilePicture: jsonb("ProfilePicture").default({ secure_url: "", public_id: "" }),
+    createdAt: timestamp("CreatedAt").defaultNow(),
+    updatedAt: timestamp("UpdatedAt").defaultNow()
+
+});
+
+export const profileSettings = pgTable("ProfileSettings", {
+
+    profileId: uuid("ProfileId").defaultRandom().primaryKey(),
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    bio: text("Bio").default(""),
+    birthDate: date("BirthDate"),
+    private: boolean("Private").default(true),
+    country: text("Country").default("India"),
+    language: text("Language").default("english"),
+
+});
+
+export const posts = pgTable("Posts", {
+
+    postId: uuid("PostId").defaultRandom().primaryKey(),
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    content: text("Content").notNull(),
+    description: text("Description").default(""),
+    likes: integer("Likes").default(0),
+    comments: integer("Comments").default(0),
+    createdAt: timestamp("CreatedAt").defaultNow(),
+    updatedAt: timestamp("UpdatedAt").defaultNow()
+
+})
+
+export const postLikes = pgTable("PostLikes", {
+
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    postId: uuid("PostId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+
+}, (table) => [
+
+    primaryKey({ columns: [table.userId, table.postId] }),
+
+]);
+
+export const postComments = pgTable("PostComments", {
+
+    commentId: uuid("CommentId").defaultRandom().primaryKey(),
+    postId: uuid("PostId").notNull().references(() => posts.postId, { onDelete: "cascade" }),
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    comment: text("Comment").notNull(),
+    createdAt: timestamp("CreatedAt").defaultNow(),
+    updatedAt: timestamp("UpdatedAt").defaultNow(),
+
+});
+
+export const follows = pgTable("Follows", {
+
+    followerId: uuid("FollowerId").notNull().references(() => users.userId, { onDelete: 'cascade' }),
+    followingId: uuid("FollowingId").notNull().references(() => users.userId, { onDelete: 'cascade' }),
+
+}, (table) => [
+
+    primaryKey({ columns: [table.followerId, table.followingId] }),
+    index("follower_idx").on(table.followerId),
+    index("following_idx").on(table.followingId),
+
+]);
+
+export const blogs = pgTable("Blogs", {
+
+    blogId: uuid("BlogId").defaultRandom().primaryKey(),
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    content: jsonb("Content").notNull(),
+    likes: integer("Likes").default(0),
+    comments: integer("Comments").default(0),
+    createdAt: timestamp("CreatedAt").defaultNow(),
+    updatedAt: timestamp("UpdatedAt").defaultNow(),
+
+});
+
+export const blogLikes = pgTable("BlogLikes", {
+
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    blogId: uuid("BlogId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+
+}, (table) => [
+
+    primaryKey({ columns: [table.userId, table.blogId] })
+
+]);
+
+export const blogComments = pgTable("BlogComments", {
+
+    commentId: uuid("CommentId").defaultRandom().primaryKey(),
+    blogId: uuid("BlogId").notNull().references(() => blogs.blogId, { onDelete: "cascade" }),
+    userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
+    comment: text("Comment").notNull(),
+    createdAt: timestamp("CreatedAt").defaultNow(),
+    updatedAt: timestamp("UpdatedAt").defaultNow(),
+
+});
