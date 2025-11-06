@@ -1,8 +1,9 @@
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { schema } from "./schema/index"
+import { eq, or } from 'drizzle-orm';
 
-async function initializeDatabase(): Promise<{ db: NodePgDatabase<typeof schema>; pool: Pool }> {
+export async function initializeDatabase(): Promise<{ db: NodePgDatabase<typeof schema>; pool: Pool }> {
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
         throw new Error("DATABASE_URL is not set in environment variables. Application cannot start.");
@@ -21,9 +22,10 @@ async function initializeDatabase(): Promise<{ db: NodePgDatabase<typeof schema>
         return { db: dbInstance, pool };
 
     } catch (error) {
-        console.error(" Failed to initialize database connection", error);
+        console.error(" Failed to initialize database connection: \n", error);
         throw new Error(" Database initialization failed ");
     }
-}
+};
 
-export const dbPromise = initializeDatabase();
+export * from "./schema/schema";
+export { eq, or };
