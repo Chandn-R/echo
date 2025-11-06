@@ -1,14 +1,20 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-
-import { dbPromise } from "../../../libs/db/index.js";
+import "dotenv/config"
 import { app } from "./app.js";
+import { checkEnv } from "@repo/utils";
+import { initializeDatabase } from "@repo/db";
 
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT;
+
+checkEnv(['DATABASE_URL',
+    "REFRESH_TOKEN_SECRET",
+    "REFRESH_TOKEN_EXPIRY",
+    "ACCESS_TOKEN_SECRET",
+    "ACCESS_TOKEN_EXPIRY",
+    'PORT']);
 
 async function server() {
-    const { db, pool } = await dbPromise;
+    const { db, pool } = await initializeDatabase();
     console.log("Database is active");
 
     app.locals.db = db;
