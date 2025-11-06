@@ -1,5 +1,5 @@
 {
-  "extends": "@my-monorepo/tsconfig/react-library.json",
+  "extends": "@repo/tsconfig/react-library.json",
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
