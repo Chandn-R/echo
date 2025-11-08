@@ -1,27 +1,32 @@
 import type { Request, Response } from "express";
-import {asyncHandler} from "@repo/utils";
-import {ApiError} from "@repo/utils";
-import {ApiResponses} from "@repo/utils";
-import jwt from "jsonwebtoken";
+import { asyncHandler } from "@repo/utils";
+import { ApiError } from "@repo/utils";
+import { ApiResponses } from "@repo/utils";
+import jwt, { Secret } from "jsonwebtoken";
 import { eq, or } from "@repo/db";
 import * as bcrypt from "bcryptjs";
 import type { StringValue } from "ms";
 import { users, type User } from "@repo/db";
 
 
+const refreshTokenSecret: Secret = process.env.REFRESH_TOKEN_SECRET!
+const accessTokenSecret: Secret = process.env.ACCESS_TOKEN_SECRET!
+const refreshTokenExpiry = `${Number(process.env.REFRESH_TOKEN_EXPIRY)}${process.env.REFRESH_TOKEN_EXPIRY_UNIT}` as StringValue
+const accessTokenExpiry = `${Number(process.env.ACCESS_TOKEN_EXPIRY)}${process.env.ACCESS_TOKEN_EXPIRY_UNIT}` as StringValue
+
 const refreshToken = (id: string) => {
     return jwt.sign(
         { id: id },
-        process.env.REFRESH_TOKEN_SECRET as string,
-        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY! as StringValue | number }
+        refreshTokenSecret,
+        { expiresIn: refreshTokenExpiry }
     )
 };
 
 const accessToken = (id: string) => {
     return jwt.sign(
         { id: id },
-        process.env.ACCESS_TOKEN_SECRET as string,
-        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY! as StringValue | number }
+        accessTokenSecret,
+        { expiresIn: accessTokenExpiry }
     )
 };
 
@@ -93,9 +98,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     };
 
     res.cookie("refreshToken", refreshToken(user.userId), cookieOptions);
-
-    // logger.info("User logged in");
-    console.log(accessToken(user.userId));
 
     return res.status(200).json(
         new ApiResponses(

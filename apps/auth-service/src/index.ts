@@ -6,12 +6,13 @@ import { initializeDatabase } from "@repo/db";
 
 const PORT = process.env.PORT;
 
-checkEnv(['DATABASE_URL',
+checkEnv(["DATABASE_URL",
     "REFRESH_TOKEN_SECRET",
     "REFRESH_TOKEN_EXPIRY",
+    "REFRESH_TOKEN_EXPIRY_UNIT",
     "ACCESS_TOKEN_SECRET",
-    "ACCESS_TOKEN_EXPIRY",
-    'PORT']);
+    "ACCESS_TOKEN_EXPIRY_UNIT",
+    "PORT"]);
 
 async function server() {
     const { db, pool } = await initializeDatabase();
