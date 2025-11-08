@@ -11,12 +11,13 @@
     "db:migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "latest",
-    "pg": "latest",
-    "@repo/tsconfig": "workspace:*"
+    "pg": "latest"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
+    "@types/node": "^24.9.2",
     "@types/pg": "latest",
     "drizzle-kit": "latest"
   }
