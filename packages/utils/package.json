@@ -12,7 +12,12 @@
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
     "@types/express": "^5.0.5",
+    "@types/streamifier": "^0.1.2",
     "eslint": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "cloudinary": "^2.8.0",
+    "streamifier": "^0.1.1"
   }
 }
