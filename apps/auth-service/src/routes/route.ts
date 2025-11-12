@@ -1,8 +1,7 @@
-import express from "express";
+import express, { Router } from "express";
 import { register, login, logout, refreshAccessToken, } from "../controllers/auth.controller.js";
-// import { protectRoute } from "../middlewares/protectRoutes.js";
 
-const router = express.Router();
+const router: Router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
