@@ -294,7 +294,7 @@ const SearchUser: React.FC = () => {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex items-center gap-1 truncate">
-                                                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                                                        <Mail className="h-3.5 w-3.5 shrink-0" />
                                                         <span className="truncate">
                                                             {user.email}
                                                         </span>

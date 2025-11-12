@@ -1,13 +1,14 @@
 import { ProfilePage } from "@/pages/ProfilePage";
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import api from "@/services/api";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/useAuthStore";
 
+// --- UPDATED INTERFACE ---
+// Added birthDate, private, country, and language
 interface FullUserProfile {
-    _id: string;
+    userId: string;
     name: string;
-    username: string;
+    userName: string;
     email: string;
     followers: Array<{
         _id: string;
@@ -38,10 +39,18 @@ interface FullUserProfile {
     createdAt: string;
     updatedAt: string;
     isFollowing: boolean;
+
+    // Added from profileSettings schema
+    birthDate?: string; // Assuming API sends as ISO string
+    private?: boolean;
+    country?: string;
+    language?: string;
 }
+// --- END OF UPDATE ---
 
 export const ProfileUpdateWrapper = () => {
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
+
     const [profile, setProfile] = useState<FullUserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -53,10 +62,9 @@ export const ProfileUpdateWrapper = () => {
         const fetchProfile = async () => {
             try {
                 console.log(" Fetching", user);
+                console.log("Fetching profile for user ID:", user.userId);
 
-                console.log("Fetching profile for user ID:", user._id);
-
-                const res = await api.get(`/users/${user._id}`);
+                const res = await api.get(`/users/profile/${user.userId}`);
                 setProfile(res.data.data);
             } catch (err) {
                 console.error("Failed to fetch profile", err);
@@ -69,10 +77,6 @@ export const ProfileUpdateWrapper = () => {
         fetchProfile();
     }, [user]);
 
-    if (!user) {
-        return <Navigate to="/login" />;
-    }
-
     if (loading) {
         return <p>Loading profile...</p>;
     }
@@ -80,5 +84,8 @@ export const ProfileUpdateWrapper = () => {
         return <p>Failed to load profile data.</p>;
     }
 
-    return <ProfilePage user={profile} />;
+    // Pass the full profile to ProfilePage
+    // Note: We rename 'user' prop to 'initialUser' to avoid confusion
+    // with the 'user' variable from the auth store.
+    return <ProfilePage initialUser={profile} />;
 };

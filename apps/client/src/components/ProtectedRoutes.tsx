@@ -1,14 +1,15 @@
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 
 const ProtectedRoute = () => {
-    const { user, isLoading } = useAuth();
+    const isLoading = useAuthStore((s) => s.isLoading);
+    const accessToken = useAuthStore((s) => s.accessToken);
 
     if (isLoading) {
         return <div>Loading session...</div>;
     }
 
-    if (!user) {
+    if (!accessToken) {
         return <Navigate to="/login" replace />;
     }
 

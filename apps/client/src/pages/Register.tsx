@@ -19,7 +19,7 @@ import { Spinner } from "@/components/ui/loader";
 import { toast } from "react-hot-toast";
 import { useState } from "react";
 
-export function SignUp() {
+export function Register() {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
 

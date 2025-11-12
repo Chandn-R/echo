@@ -1,144 +1,237 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Logo from "@/assets/logo.svg";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home, User, Search, PlusCircle, MessageSquare } from "lucide-react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import Logo from "@/assets/logo.svg";
 
 function Layout() {
     const navigate = useNavigate();
-    const { user } = useAuth();
-
-    const protectedNavigate = (path: string) => {
-        if (!user) {
-            navigate("/login");
-        } else {
-            console.log(user);
-
-            navigate(path);
-        }
-    };
 
     return (
-        <div className="flex w-full">
-            <aside className="w-30 py-4 bg-background flex flex-col items-center h-screen sticky top-0">
-                <div className="mb-10 mt-3 hover:brightness-125">
-                    <button className="rounded-lg h-16 w-16">
-                        <img src={Logo} alt="logo" className="w-16 h-16" />
-                    </button>
-                </div>
+        <div className="flex min-h-screen w-full">
+            {/* 1. LEFT SIDEBAR (No changes) */}
+            <aside className="w-24 bg-background flex flex-col items-center py-6 border-r border-border sticky top-0 h-screen">
+                <button
+                    onClick={() => navigate("/")}
+                    className="mb-10 hover:opacity-90"
+                >
+                    <img src={Logo} alt="Logo" className="w-12 h-12" />
+                </button>
 
-                <nav className="flex flex-col items-center space-y-6 ml-1 flex-1 p-1">
-                    <button
+                <nav className="flex flex-col items-center space-y-6 flex-1">
+                    <NavButton
+                        icon={<Home className="h-6 w-6" />}
                         onClick={() => navigate("/")}
-                        className="rounded-lg h-12 w-12 ml-5 brightness-75 hover:brightness-125"
-                    >
-                        <Home className="h-6 w-6" />
-                    </button>
-                    <button
-                        onClick={() => protectedNavigate("/search")}
-                        className="rounded-lg h-12 ml-5 brightness-75 hover:brightness-125 w-12"
-                    >
-                        <Search className="h-6 w-6" />
-                    </button>
-                    <button
-                        onClick={() => protectedNavigate("/create")}
-                        className="rounded-lg h-12 brightness-75 hover:brightness-125 ml-5 w-12"
-                    >
-                        <PlusCircle className="h-6 w-6" />
-                    </button>
-                    <button
-                        onClick={() => protectedNavigate("/chat")}
-                        className="rounded-lg h-12 brightness-75 hover:brightness-125 ml-5 w-12"
-                    >
-                        <MessageSquare className="h-6 w-6" />
-                    </button>
+                    />
+                    <NavButton
+                        icon={<Search className="h-6 w-6" />}
+                        onClick={() => navigate("/search")}
+                    />
+                    <NavButton
+                        icon={<PlusCircle className="h-6 w-6" />}
+                        onClick={() => navigate("/create")}
+                    />
+                    <NavButton
+                        icon={<MessageSquare className="h-6 w-6" />}
+                        onClick={() => navigate("/chat")}
+                    />
                 </nav>
 
-                <div className="flex flex-col py-4 gap-3 ml-8 ">
+                <div className="flex flex-col items-center gap-6 pb-4">
                     <ModeToggle />
-                    <button className="rounded-lg h-12 brightness-75 hover:brightness-125 w-12">
-                        <User
-                            onClick={() => protectedNavigate(`/user/me`)}
-                            className="h-6 w-6"
-                        />
-                    </button>
+                    <NavButton
+                        icon={<User className="h-6 w-6" />}
+                        onClick={() => navigate("/user/me")}
+                    />
                 </div>
             </aside>
 
-            <main className="flex-1 flex justify-center items-center max-w-4xl min-h-screen p-4">
-                <Outlet />
+            {/* 2. MAIN CONTENT (No changes) */}
+            <main className="flex-1 flex justify-center p-6 overflow-y-auto">
+                <div className="w-full max-w-3xl">
+                    <Outlet />
+                </div>
             </main>
 
-            <div className="hidden lg:block w-64">
-                <div className="sticky top-0 h-screen p-4 space-y-6 overflow-y-auto">
-                    <Card>
-                        <CardHeader className="p-4">
-                            <CardTitle className="text-base">
-                                Trending Threads
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-3">
-                            {[
-                                "#React",
-                                "#Shadcn",
-                                "#ThreadsClone",
-                                "#NextJS",
-                            ].map((tag) => (
-                                <div
-                                    key={tag}
-                                    className="flex items-center justify-between hover:bg-accent p-2 rounded cursor-pointer"
-                                >
-                                    <span className="text-sm">{tag}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        2.4k
-                                    </span>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="">
-                            <CardTitle className="text-base">
-                                Recommended
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-5">
-                            {[1, 2, 3, 4].map((user) => (
-                                <div
-                                    key={user}
-                                    className="flex items-center justify-between"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Avatar className="w-8 h-8">
-                                            <AvatarImage
-                                                src={`/avatars/suggested-${user}.png`}
-                                            />
-                                            <AvatarFallback>
-                                                SU{user}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-sm">
-                                            user_{user}
-                                        </span>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="rounded-full h-8 text-xs"
-                                    >
-                                        Follow
-                                    </Button>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+            {/* 3. RIGHT SIDEBAR (Updated) */}
+            {/* - flex-col and h-screen are key.
+                - We let the content stack, and the footer (with mt-auto)
+                  will automatically be pushed to the bottom.
+            */}
+            <aside className="w-72 bg-background flex flex-col p-6 border-l border-border sticky top-0 h-screen lg:flex">
+                {/* Section 1: Suggestions */}
+                <div className="flex flex-col gap-4">
+                    <h3 className="text-lg font-semibold text-foreground">
+                        Suggestions for you
+                    </h3>
+                    <SuggestionCard
+                        name="Alice"
+                        handle="@alice"
+                        avatarUrl="https://i.pravatar.cc/150?img=1"
+                    />
+                    <SuggestionCard
+                        name="Bob"
+                        handle="@bob"
+                        avatarUrl="https://i.pravatar.cc/150?img=2"
+                    />
+                    <SuggestionCard
+                        name="Charlie"
+                        handle="@charlie"
+                        avatarUrl="https://i.pravatar.cc/150?img=3"
+                    />
+                    <SuggestionCard
+                        name="David"
+                        handle="@david"
+                        avatarUrl="https://i.pravatar.cc/150?img=4"
+                    />
+                    <SuggestionCard
+                        name="Eve"
+                        handle="@eve"
+                        avatarUrl="https://i.pravatar.cc/150?img=5"
+                    />
+                    <SuggestionCard
+                        name="Eve"
+                        handle="@eve"
+                        avatarUrl="https://i.pravatar.cc/150?img=5"
+                    />
                 </div>
-            </div>
+
+                {/* A separator */}
+                <hr className="my-6" />
+
+                {/* Section 2: Trends */}
+                <div className="flex flex-col gap-1">
+                    <h3 className="text-lg font-semibold text-foreground mb-3">
+                        Trends for you
+                    </h3>
+                    <TrendItem
+                        category="Technology"
+                        topic="#React19"
+                        postCount="15.2K"
+                    />
+                    <TrendItem
+                        category="Gaming"
+                        topic="#IndieDev"
+                        postCount="8.1K"
+                    />
+                    <TrendItem
+                        category="Science"
+                        topic="#AI"
+                        postCount="120K"
+                    />
+                </div>
+
+                {/* Section 3: Footer (pushed to bottom) */}
+                <SidebarFooter />
+            </aside>
         </div>
+    );
+}
+
+// --- NavButton Component (No changes) ---
+function NavButton({
+    icon,
+    onClick,
+}: {
+    icon: React.ReactNode;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className="rounded-lg h-12 w-12 flex items-center justify-center hover:bg-accent transition-colors"
+        >
+            {icon}
+        </button>
+    );
+}
+
+// --- SuggestionCard Component (No changes) ---
+function SuggestionCard({
+    name,
+    handle,
+    avatarUrl,
+}: {
+    name: string;
+    handle: string;
+    avatarUrl?: string;
+}) {
+    return (
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                {avatarUrl ? (
+                    <img
+                        src={avatarUrl}
+                        alt={name}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <User className="w-5 h-5 text-muted-foreground" />
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-medium text-sm text-foreground">{name}</p>
+                <p className="text-xs text-muted-foreground">{handle}</p>
+            </div>
+            <button className="text-primary text-sm font-medium hover:opacity-80 px-3 py-1">
+                Follow
+            </button>
+        </div>
+    );
+}
+
+// --- NEW: TrendItem Component ---
+function TrendItem({
+    category,
+    topic,
+    postCount,
+}: {
+    category: string;
+    topic: string;
+    postCount: string;
+}) {
+    return (
+        // Made this a button so it can be clicked to see the trend
+        <button className="text-left w-full hover:bg-accent p-2 rounded-lg transition-colors">
+            <p className="text-xs text-muted-foreground">
+                {category} · Trending
+            </p>
+            <p className="font-medium text-sm text-foreground">{topic}</p>
+            <p className="text-xs text-muted-foreground">{postCount} posts</p>
+        </button>
+    );
+}
+
+// --- NEW: SidebarFooter Component ---
+function SidebarFooter() {
+    return (
+        // mt-auto is the magic here. It pushes this footer
+        // to the bottom of the flex-col container.
+        <footer className="mt-auto">
+            <nav className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                {/* You can replace these with React Router <Link> components */}
+                <a href="#" className="hover:underline">
+                    About
+                </a>
+                <a href="#" className="hover:underline">
+                    Help
+                </a>
+                <a href="#" className="hover:underline">
+                    Privacy
+                </a>
+                <a href="#" className="hover:underline">
+                    Terms
+                </a>
+                <a href="#" className="hover:underline">
+                    API
+                </a>
+                <a href="#" className="hover:underline">
+                    Locations
+                </a>
+            </nav>
+            <p className="text-xs text-muted-foreground mt-4">
+                © 2025 Your App Name
+            </p>
+        </footer>
     );
 }
 

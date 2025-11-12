@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import type { Conversation, User } from "./ChatPage";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface ChatListProps {
     chats: Conversation[];
@@ -26,7 +26,8 @@ export function ChatList({
     loading,
     activeUserId,
 }: ChatListProps) {
-    const { user: currentUser } = useAuth();
+        const currentUser = useAuthStore((state) => state.user);
+    
 
     const renderContent = () => {
         if (loading) {

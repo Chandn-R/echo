@@ -10,15 +10,10 @@ export function ModeToggle() {
 
     return (
         <button
-            className="rounded-lg h-12 w-12 brightness-75 hover:brightness-125"
             onClick={toggleTheme}
             aria-label="Toggle theme"
         >
-            {theme === "dark" ? (
-                <Sun className="h-6 w-6" />
-            ) : (
-                <Moon className="h-6 w-6" />
-            )}
+            {theme === "dark" ? <Sun /> : <Moon />}
         </button>
     );
 }

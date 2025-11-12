@@ -6,7 +6,7 @@ import { MessageCircle, Heart } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface Post {
     _id: string;
@@ -47,7 +47,7 @@ export default function Home() {
     const [hasNextPage, setHasNextPage] = useState(true);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const user = useAuthStore((s) => s.user);
 
     const fetchPosts = async (cursor?: string) => {
         try {
@@ -272,8 +272,14 @@ export default function Home() {
                     </CardContent>
                 </Card>
             ))}
-            {loadingMore && <p className="text-center">Loading more posts...</p>}
-            {!hasNextPage && <p className="text-center text-muted-foreground">You've reached the end!</p>}
+            {loadingMore && (
+                <p className="text-center">Loading more posts...</p>
+            )}
+            {!hasNextPage && (
+                <p className="text-center text-muted-foreground">
+                    You've reached the end!
+                </p>
+            )}
         </div>
     );
 }

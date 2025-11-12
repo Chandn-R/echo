@@ -1,5 +1,12 @@
+import { useState, useEffect } from "react";
+import { replace, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import toast from "react-hot-toast";
+
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/loader";
+import { Separator } from "@/components/ui/separator";
 import {
     Card,
     CardAction,
@@ -9,19 +16,16 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { redirect, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+
 import { loginSchema, type LoginSchema } from "../schemas/loginSchema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export function Login() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const login = useAuthStore((state) => state.login);
+    const user = useAuthStore((s) => s.user);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const {
@@ -32,6 +36,10 @@ export function Login() {
         resolver: zodResolver(loginSchema),
     });
 
+    useEffect(() => {
+        if (user) navigate("/");
+    }, [user, navigate]);
+
     const onSubmit = async (data: LoginSchema) => {
         setIsSubmitting(true);
         try {
@@ -39,9 +47,10 @@ export function Login() {
                 email: data.email,
                 password: data.password,
             });
-            navigate("/");
+            console.log("Done");
+            navigate("/", { replace: true });
         } catch (error) {
-            console.error("Login failed:", error);
+            toast.error("Invalid email or password");
         } finally {
             setIsSubmitting(false);
         }
@@ -111,16 +120,16 @@ export function Login() {
                             type="submit"
                             className="w-full"
                             disabled={isSubmitting}
+                            aria-busy={isSubmitting}
                         >
-                            {isSubmitting && <Spinner />}
-                            {!isSubmitting && "Login"}
+                            {isSubmitting ? <Spinner /> : "Login"}
                         </Button>
-                        <Separator className="my-4" />
+                        {/* <Separator className="my-4" /> */}
                     </CardFooter>
                 </form>
-                <Button onClick={() => navigate("/auth/google")}>
+                {/* <Button onClick={() => navigate("/auth/google")}>
                     Google Login
-                </Button>
+                </Button> */}
             </Card>
         </div>
     );

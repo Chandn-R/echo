@@ -9,7 +9,7 @@ export const authService = {
     password: string;
   }) {
     try {
-      const response = await api.post("/auth/signup", data);
+      const response = await api.post("/auth/register", data);
       toast.success("Registration successful! Please log in.");
       return { success: true, user: response.data.data };
     } catch (error: any) {

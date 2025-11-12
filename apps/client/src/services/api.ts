@@ -3,8 +3,9 @@ import axios from 'axios';
 let accessToken: string | null = null;
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
-  withCredentials: true
+  baseURL: 'http://localhost:5000/api/v1',
+  withCredentials: true,
+  timeout: 7000
 });
 
 export const setApiAccessToken = (token: string | null) => {
@@ -61,6 +62,7 @@ api.interceptors.response.use(
       try {
         const response = await api.post('/auth/refresh');
         const newAccessToken = response.data.data.accessToken;
+        console.log(`In api.ts ${newAccessToken}`)
 
         setApiAccessToken(newAccessToken);
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
@@ -71,7 +73,9 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         setApiAccessToken(null);
-        window.location.href = '/login';
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
 
         return Promise.reject(refreshError);
 

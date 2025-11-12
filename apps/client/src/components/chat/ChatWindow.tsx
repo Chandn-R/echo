@@ -7,10 +7,10 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/AuthContext";
 import type { Conversation, Message, User } from "./ChatPage";
 import { Message as MessageComponent } from "./Message";
 import { MessageInput } from "./MessageInput";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface ChatWindowProps {
     conversation: Conversation;
@@ -29,7 +29,8 @@ export function ChatWindow({
     loading,
     onSendMessage,
 }: ChatWindowProps) {
-    const { user: currentUser } = useAuth();
+    const currentUser = useAuthStore((state) => state.user);
+
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
