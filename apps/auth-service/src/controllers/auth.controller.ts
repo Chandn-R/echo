@@ -3,7 +3,7 @@ import { asyncHandler } from "@repo/utils";
 import { ApiError } from "@repo/utils";
 import { ApiResponses } from "@repo/utils";
 import jwt, { Secret } from "jsonwebtoken";
-import { eq, or } from "@repo/db";
+import { eq, or, profileSettings } from "@repo/db";
 import * as bcrypt from "bcryptjs";
 import type { StringValue } from "ms";
 import { users, type User } from "@repo/db";
@@ -11,8 +11,8 @@ import { users, type User } from "@repo/db";
 
 const refreshTokenSecret: Secret = process.env.REFRESH_TOKEN_SECRET!
 const accessTokenSecret: Secret = process.env.ACCESS_TOKEN_SECRET!
-const refreshTokenExpiry = `${Number(process.env.REFRESH_TOKEN_EXPIRY)}${process.env.REFRESH_TOKEN_EXPIRY_UNIT}` as StringValue
-const accessTokenExpiry = `${Number(process.env.ACCESS_TOKEN_EXPIRY)}${process.env.ACCESS_TOKEN_EXPIRY_UNIT}` as StringValue
+const refreshTokenExpiry = `${Number(process.env.REFRESH_TOKEN_EXPIRY)}${process.env.REFRESH_TOKEN_EXPIRY_UNIT?.toLowerCase()}` as StringValue
+const accessTokenExpiry = `${Number(process.env.ACCESS_TOKEN_EXPIRY)}${process.env.ACCESS_TOKEN_EXPIRY_UNIT?.toLowerCase()}` as StringValue
 
 const refreshToken = (id: string) => {
     return jwt.sign(
@@ -46,21 +46,36 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const createNewUser = await db.insert(users).values({
-        name: name,
-        username: username,
-        email: email,
-        password: hashedPassword,
-    }).returning({ id: users.userId });
+    const newUser = await db.transaction(async (tx) => {
+        const createNewUser = await tx.insert(users).values({
+            name: name,
+            userName: username,
+            email: email,
+            password: hashedPassword,
+        }).returning({ id: users.userId });
 
-    if (!createNewUser[0]) {
-        throw new ApiError(400, "User not created");
+        if (!createNewUser[0]) {
+            throw new ApiError(400, "User not created, transaction rolled back");
+        }
+
+        const newUserId = createNewUser[0].id;
+
+        await tx.insert(profileSettings).values({
+            userId: newUserId,
+        });
+
+        return createNewUser[0];
+    });
+
+    if (!newUser) {
+        throw new ApiError(500, "Something went wrong during user creation");
     }
+
     res.status(201).json(
         new ApiResponses(
             201,
-            createNewUser[0],
-            "User created"
+            newUser,
+            "User created successfully"
         )
     );
 });
@@ -68,6 +83,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 export const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const db = req.app.locals.db;
+    console.log(email, password);
 
 
     if (!email || !password) {
@@ -91,9 +107,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict" as const,
-        domain: "localhost",
+        sameSite: "lax" as const,
+        secure: false,
         path: "/",
     };
 
@@ -107,6 +122,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
                 username: user.userName,
                 email: user.email,
                 name: user.name,
+                profilePicture: user.profilePicture,
                 accessToken: accessToken(user.userId),
             },
             "Login successful"
@@ -119,11 +135,10 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
     res.clearCookie("refreshToken", {
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: "none" as const,
         path: "/",
     });
 
-    // console.log(`User ${user} logged out`)
     // logger.info(`User ${user}logged out`);
 
     res.status(200).json(
@@ -136,6 +151,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 export const refreshAccessToken = asyncHandler(
     async (req: Request, res: Response) => {
         const token = req.cookies?.refreshToken;
+        console.log(token)
         const db = req.app.locals.db;
 
 
@@ -153,10 +169,13 @@ export const refreshAccessToken = asyncHandler(
             throw new ApiError(403, "Invalid or expired refresh token");
         }
 
-        console.log(verifiedToken.id);
+        console.log(`hello,${verifiedToken.id}`);
 
         const user: User = await db.query.users.findFirst({
-            where: eq(users.userId, verifiedToken.id)
+            where: eq(users.userId, verifiedToken.id),
+            columns: {
+                password: false
+            }
         })
 
         if (!user) {
@@ -167,6 +186,7 @@ export const refreshAccessToken = asyncHandler(
             new ApiResponses(
                 200,
                 {
+                    user,
                     newAccessToken: accessToken(user.userId),
                 },
                 "New access token generated"
