@@ -21,13 +21,14 @@ async function server() {
 
     // Middlewares
     app.use(cors({
-        origin: "http://localhost:5173"
+        origin: "http://localhost:5173",
+        credentials: true,
     }));
     app.use(helmet());
     app.use(morgan("combined"));
     app.disable("x-powered-by"); // Hide Express server information
     app.use(limiter);
-    app.use(protectRoute);
+    // app.use(protectRoute);
 
     const services = [
         {
@@ -48,6 +49,16 @@ async function server() {
         const proxyOptions = {
             target,
             changeOrigin: true,
+            secure: false,
+            onProxyReq: (proxyReq: any, req: Request, res: Response) => {
+                if (req.headers.cookie) {
+                    proxyReq.setHeader("cookie", req.headers.cookie);
+                }
+            },
+            onProxyRes: (proxyRes: any) => {
+                proxyRes.headers["Access-Control-Allow-Origin"] = "http://localhost:5173";
+                proxyRes.headers["Access-Control-Allow-Credentials"] = "true";
+            },
         };
         app.use(route, createProxyMiddleware<Request, Response>(proxyOptions));
     });

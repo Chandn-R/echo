@@ -19,8 +19,8 @@ export async function connectDb() {
 
 export function createRateLimiter() {
     return rateLimit({
-        windowMs: 5 * 60 * 1000, // 5 minutes
-        max: 25,
+        windowMs: 1 * 60 * 1000, // 1 minutes
+        max: 100,
         standardHeaders: true,
         legacyHeaders: false,
         store: new RedisStore({
