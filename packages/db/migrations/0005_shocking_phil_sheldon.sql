@@ -1,0 +1,1 @@
+ALTER TABLE "Posts" ADD COLUMN "Image" jsonb DEFAULT '{"secure_url":"","public_id":""}'::jsonb;

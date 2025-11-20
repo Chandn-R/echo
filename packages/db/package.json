@@ -7,8 +7,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "db:generate": "drizzle-kit generate:pg",
-    "db:migrate": "tsx src/migrate.ts"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@repo/tsconfig": "workspace:*",

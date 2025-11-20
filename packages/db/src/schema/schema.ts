@@ -33,14 +33,14 @@ export const posts = pgTable("Posts", {
 
     postId: uuid("PostId").defaultRandom().primaryKey(),
     userId: uuid("UserId").notNull().references(() => users.userId, { onDelete: "cascade" }),
-    content: text("Content").notNull(),
+    image: jsonb("Image").default({ secure_url: "", public_id: "" }).notNull(),
     description: text("Description").default(""),
     likes: integer("Likes").default(0),
     comments: integer("Comments").default(0),
     createdAt: timestamp("CreatedAt").defaultNow(),
     updatedAt: timestamp("UpdatedAt").defaultNow()
 
-})
+});
 
 export const postLikes = pgTable("PostLikes", {
 
