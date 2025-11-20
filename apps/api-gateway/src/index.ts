@@ -28,7 +28,7 @@ async function server() {
     app.use(morgan("combined"));
     app.disable("x-powered-by"); // Hide Express server information
     app.use(limiter);
-    // app.use(protectRoute);
+    app.use(protectRoute);
 
     const services = [
         {

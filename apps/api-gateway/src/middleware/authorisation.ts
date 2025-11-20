@@ -22,7 +22,7 @@ export const protectRoute = asyncHandler(async (req: Request, res: Response, nex
             throw new Error("Invalid token payload");
         }
         const payload = decoded as AuthPayload;
-        req.user = { id: payload.id };
+        req.user = { userId: payload.id };
         next();
 
     } catch (error) {

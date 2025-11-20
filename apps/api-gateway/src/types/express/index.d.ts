@@ -1,5 +1,5 @@
 interface UserPayload {
-  id: string;
+  userId: string;
 }
 
 declare namespace Express {
