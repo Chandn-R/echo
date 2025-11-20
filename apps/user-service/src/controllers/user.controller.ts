@@ -1,6 +1,6 @@
 import { ApiError, ApiResponses, asyncHandler, cloudinaryUpload } from "@repo/utils";
 import { Request, Response } from "express";
-import { users, follows, eq, and, not, profileSettings } from "@repo/db";
+import { users, follows, eq, and, not, profileSettings, posts } from "@repo/db";
 
 export const followUser = asyncHandler(async (req: Request, res: Response) => {
     const userToFollowId = req.params.id;
@@ -160,7 +160,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     if (language) profileUpdateData.language = language;
 
     try {
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
             if (Object.keys(userUpdateData).length > 0) {
                 await tx.update(users)
                     .set(userUpdateData)
@@ -327,4 +327,37 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
             "Users retrieved successfully"
         )
     );
+});
+
+export const createPost = asyncHandler(async (req: Request, res: Response) => {
+    const currentUserId = req.user?.userId;
+    const { description } = req.body;
+    const files = req.files as Express.Multer.File[];
+    const db = req.app.locals.db;
+
+    if (!files || files.length === 0) {
+        throw new ApiError(400, "Image file is required to create a post");
+    }
+
+    const file = files[0]
+    if (!file) {
+        throw new ApiError(400, "Image file is required to create a post");
+    }
+
+    const uploadedImage = await cloudinaryUpload(
+        file.buffer,
+        "post_images"
+    );
+
+    const post = await db.insert(posts).values({
+        userId: currentUserId,
+        image: {
+            secure_url: uploadedImage.secure_url,
+            public_id: uploadedImage.public_id
+        },
+        description: description || "",
+    })
+
+    res.status(201)
+        .json(new ApiResponses(201, post, "Post created successfully"));
 });
