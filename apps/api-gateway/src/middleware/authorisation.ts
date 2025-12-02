@@ -23,6 +23,7 @@ export const protectRoute = asyncHandler(async (req: Request, res: Response, nex
         }
         const payload = decoded as AuthPayload;
         req.user = { userId: payload.id };
+        console.log("Users token verified");
         next();
 
     } catch (error) {

@@ -3,12 +3,13 @@ import express, { Request, Response } from "express"
 import cors from "cors"
 import helmet from "helmet";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { protectRoute } from "./middleware/authorisation.js";
 import { connectDb, createRateLimiter, redisClient } from "./middleware/rateLimit.js";
 import { checkEnv } from "@repo/utils";
 
-checkEnv(["PORT", "ACCESS_TOKEN_SECRET"])
+checkEnv(["PORT", "ACCESS_TOKEN_SECRET", "CLIENT_URL"])
 
 
 const PORT = process.env.PORT;
@@ -19,48 +20,61 @@ async function server() {
 
     const limiter = createRateLimiter();
 
-    // Middlewares
     app.use(cors({
-        origin: "http://localhost:5173",
+        origin: process.env.CLIENT_URL,
         credentials: true,
     }));
     app.use(helmet());
     app.use(morgan("combined"));
-    app.disable("x-powered-by"); // Hide Express server information
+    app.use(cookieParser());
+    app.disable("x-powered-by");
     app.use(limiter);
-    app.use(protectRoute);
 
     const services = [
         {
             route: "/api/v1/auth",
-            target: "http://localhost:5001",
+            target: process.env.AUTH_SERVICE_URL,
+            protect: false
         },
         {
             route: "/api/v1/users",
-            target: "http://localhost:5002",
+            target: process.env.USER_SERVICE_URL,
+            protect: true
+
         },
         {
             route: "/api/v1/chats",
-            target: "http://localhost:5003",
+            target: process.env.CHAT_SERVICE_URL,
+            protect: true
+
         },
     ];
 
-    services.forEach(({ route, target }) => {
+    services.forEach(({ route, target, protect }) => {
         const proxyOptions = {
             target,
             changeOrigin: true,
             secure: false,
             onProxyReq: (proxyReq: any, req: Request, res: Response) => {
+
+                if (req.headers['content-type']) {
+                    proxyReq.setHeader('Content-Type', req.headers['content-type']);
+                }
+
+                if (req.user && req.user.userId) {
+                    proxyReq.setHeader('x-user-id', req.user.userId);
+                }
+
                 if (req.headers.cookie) {
                     proxyReq.setHeader("cookie", req.headers.cookie);
                 }
-            },
-            onProxyRes: (proxyRes: any) => {
-                proxyRes.headers["Access-Control-Allow-Origin"] = "http://localhost:5173";
-                proxyRes.headers["Access-Control-Allow-Credentials"] = "true";
-            },
+            }
         };
-        app.use(route, createProxyMiddleware<Request, Response>(proxyOptions));
+        if (protect) {
+            app.use(route, protectRoute, createProxyMiddleware(proxyOptions));
+        } else {
+            app.use(route, createProxyMiddleware(proxyOptions));
+        }
     });
 
     const server = app.listen(PORT, () => {
@@ -85,6 +99,3 @@ server().catch(err => {
     console.error("Fatal error during server startup:", err);
     process.exit(1);
 });
-
-
-
