@@ -1,7 +1,7 @@
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { schema } from "./schema/index"
-import { eq, or, and, not } from 'drizzle-orm';
+import { eq, or, and, not, lt, desc, sql, count } from 'drizzle-orm';
 
 export async function initializeDatabase(): Promise<{ db: NodePgDatabase<typeof schema>; pool: Pool }> {
     const databaseUrl = process.env.DATABASE_URL;
@@ -29,4 +29,4 @@ export async function initializeDatabase(): Promise<{ db: NodePgDatabase<typeof 
 };
 
 export * from "./schema/schema";
-export { eq, or, and, not };
+export { eq, or, and, not, lt, desc, sql, count };
