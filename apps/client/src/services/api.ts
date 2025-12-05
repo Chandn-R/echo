@@ -31,9 +31,13 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use(
   (config) => {
+    console.log("Token in interceptor:", accessToken);
+
     if (accessToken) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
     }
+    console.log("Header being sent:", config.headers.Authorization);
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -61,7 +65,9 @@ api.interceptors.response.use(
 
       try {
         const response = await api.post('/auth/refresh');
-        const newAccessToken = response.data.data.accessToken;
+        const newAccessToken = response.data.data.newAccessToken;
+        console.log(response.data.data);
+        
         console.log(`In api.ts ${newAccessToken}`)
 
         setApiAccessToken(newAccessToken);

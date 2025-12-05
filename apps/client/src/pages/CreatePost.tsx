@@ -1,192 +1,201 @@
-import { useState, useRef } from "react";
+import { useRef, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { PlusCircle, X, Image as ImageIcon, Type, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/stores/useAuthStore";
 import toast from "react-hot-toast";
-import  api  from "@/services/api";
+import api from "@/services/api";
 
-type Block = { type: "text"; value: string } | { type: "image"; value: File };
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+];
+
+const formSchema = z.object({
+    description: z.string().max(500),
+    image: z
+        .instanceof(File, { message: "Image is required" })
+        .refine((file) => ACCEPTED_IMAGE_TYPES.includes(file.type), {
+            message: "Invalid file type",
+        })
+        .refine((file) => file.size <= MAX_FILE_SIZE, {
+            message: "File must be 5MB or less",
+        })
+        .nullable(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 export function CreatePost() {
-  const [blocks, setBlocks] = useState<Block[]>([{ type: "text", value: "" }]);
-  const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+    const { user } = useAuthStore();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const handleChangeText = (index: number, value: string) => {
-    setBlocks((prev) =>
-      prev.map((block, i) =>
-        i === index && block.type === "text" ? { ...block, value } : block
-      )
-    );
-  };
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        watch,
+        formState: { isSubmitting },
+    } = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: { description: "", image: undefined },
+    });
 
-  const handleAddImage = (file: File) => {
-    if (file instanceof File) {
-      setBlocks([...blocks, { type: "image", value: file }]);
-    }
-  };
+    const imageFile = watch("image");
+    const previewUrl = imageFile ? URL.createObjectURL(imageFile) : null;
+    const { ref: descriptionRef, ...descriptionRest } = register("description");
 
-  const handleAddText = () => {
-    setBlocks([...blocks, { type: "text", value: "" }]);
-  };
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const target = e.target;
+        target.style.height = "auto";
+        target.style.height = `${target.scrollHeight}px`;
+    };
 
-  const handleRemove = (index: number) => {
-    if (blocks.length > 1) {
-      setBlocks((prev) => prev.filter((_, i) => i !== index));
-    }
-  };
+    const handleFile = useCallback(
+        (file: File) => {
+            if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
+                return toast.error("File type not supported");
+            if (file.size > MAX_FILE_SIZE)
+                return toast.error("File too large (Max 5MB)");
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-
-      blocks.forEach((block, index) => {
-        formData.append(`content[${index}][type]`, block.type);
-        if (block.type === "image" && block.value instanceof File) {
-          formData.append(`content[${index}][value]`, block.value);
-        } else {
-          formData.append(`content[${index}][value]`, block.value);
-        }
-      });
-
-      const response = await api.post("/posts", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+            setValue("image", file);
         },
-        withCredentials: true,
-      });
-      console.log(formData);
-      console.log(response);
-    } catch (error) {
-      console.error("Error creating post:", error);
-      toast.error("Failed to create post. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+        [setValue]
+    );
 
-  return (
-    <Card className="w-full max-w-xl border-border shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl font-semibold tracking-tight">
-          Create Post
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <AnimatePresence>
-          <div className="space-y-3">
-            {blocks.map((block, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                className="relative group"
-              >
-                {block.type === "text" ? (
-                  <div className="relative">
-                    <Textarea
-                      placeholder="Share your thoughts..."
-                      value={block.value}
-                      onChange={(e) => handleChangeText(index, e.target.value)}
-                      className="min-h-[120px] text-base resize-none"
-                    />
-                    {blocks.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-all h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm"
-                        onClick={() => handleRemove(index)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="relative rounded-lg overflow-hidden border">
-                    <img
-                      src={URL.createObjectURL(block.value)}
-                      alt="preview"
-                      className="max-h-80 w-full object-cover"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
-                      onClick={() => handleRemove(index)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) handleFile(e.target.files[0]);
+    };
 
-        <div className="flex gap-2 pb-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 px-3 h-9 rounded-lg hover:bg-accent/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-            type="button"
-          >
-            <ImageIcon className="w-4 h-4 text-primary" />
-            <span>Image</span>
-            <Input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleAddImage(file);
-                }
-                if (fileInputRef.current) fileInputRef.current.value = "";
-              }}
-            />
-          </Button>
+    const removeImage = () => {
+        setValue("image", null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 px-3 h-9 rounded-lg hover:bg-accent/50 transition-colors"
-            onClick={handleAddText}
-            type="button"
-          >
-            <Type className="w-4 h-4 text-primary" />
-            <span>Text</span>
-          </Button>
+    const onSubmit = async (data: FormValues) => {
+        try {
+            if (!data.image) return;
+
+            const formData = new FormData();
+            formData.append("description", data.description);
+            if (data.image) formData.append("image", data.image);
+
+            console.log(formData);
+
+            await api.post("users/post", formData);
+
+            setValue("description", "");
+            setValue("image", null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (textareaRef.current) textareaRef.current.style.height = "auto";
+            toast.success("Post published!");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to create post");
+        }
+    };
+
+    return (
+        <div className="flex items-center justify-center min-h-[80vh] w-full">
+            <div className="w-full max-w-2xl border-b border-border bg-background px-4 py-6 sm:rounded-xl sm:border sm:shadow-sm">
+                <form onSubmit={handleSubmit(onSubmit)} className="flex gap-4">
+                    <div className="shrink-0">
+                        <Avatar className="h-11 w-11 cursor-pointer hover:opacity-90">
+                            <AvatarImage
+                                src={user?.profilePicture?.secure_url}
+                                className="object-cover"
+                            />
+                            <AvatarFallback>
+                                {user?.userName?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                        <Textarea
+                            className="min-h-11 w-full resize-none border-none bg-transparent py-3 px-4 text-lg leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-0 shadow-none"
+                            {...descriptionRest}
+                            ref={(e) => {
+                                descriptionRef(e);
+                                textareaRef.current = e;
+                            }}
+                            onChange={(e) => {
+                                descriptionRest.onChange(e);
+                                handleInput(e);
+                            }}
+                            placeholder="Share your memories..."
+                            rows={1}
+                        />
+
+                        {previewUrl && (
+                            <div className="relative mt-4 rounded-xl overflow-hidden border border-border/50">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+                                    onClick={removeImage}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                                <img
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="w-full max-h-[500px] object-contain bg-muted/20"
+                                />
+                            </div>
+                        )}
+
+                        <div className="mt-4 h-px bg-border/40" />
+
+                        <div className="flex items-center justify-between pt-3">
+                            <div className="flex items-center -ml-2.5">
+                                <input
+                                    type="file"
+                                    accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                                    className="hidden"
+                                    ref={fileInputRef}
+                                    onChange={onFileChange}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-primary/90 hover:text-primary hover:bg-primary/10 rounded-full gap-2 px-3 h-9"
+                                    onClick={() =>
+                                        fileInputRef.current?.click()
+                                    }
+                                >
+                                    <ImageIcon className="w-5 h-5" />
+                                    <span className="text-sm font-medium">
+                                        Media
+                                    </span>
+                                </Button>
+                            </div>
+
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting || !imageFile}
+                                className="rounded-full px-6 font-semibold"
+                            >
+                                {isSubmitting ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    "Post"
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <Button
-          onClick={handleSubmit}
-          disabled={
-            submitting ||
-            blocks.every((b) => b.type === "text" && !b.value.trim())
-          }
-          className="w-full h-10 rounded-lg transition-all"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Publishing...
-            </>
-          ) : (
-            <span className="flex items-center gap-1">
-              <PlusCircle className="w-4 h-4" />
-              Publish Post
-            </span>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
-  );
+    );
 }

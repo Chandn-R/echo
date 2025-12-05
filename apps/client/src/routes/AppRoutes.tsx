@@ -5,10 +5,9 @@ import Home from "@/pages/Home";
 import { Login } from "@/pages/Login";
 import { Register } from "@/pages/Register";
 import type { RouteObject } from "react-router-dom";
-import { ProfileUpdateWrapper } from "@/components/MyProfilePage";
-import { UserProfileWrapper } from "@/components/UserProfilePage";
 import SearchUser from "@/pages/SearchUser";
-// import { ChatPage } from "@/components/chat/ChatPage";
+import { MyProfilePage } from "@/pages/MyProfilePage";
+import { PublicProfilePage } from "@/pages/PublicProfilePage";
 
 export const routes: RouteObject[] = [
     { path: "/login", element: <Login /> },
@@ -22,9 +21,10 @@ export const routes: RouteObject[] = [
                 element: <ProtectedRoute />,
                 children: [
                     { index: true, element: <Home /> },
+
                     { path: "create", element: <CreatePost /> },
-                    { path: "user/me", element: <ProfileUpdateWrapper /> },
-                    { path: "users/:id", element: <UserProfileWrapper /> },
+                    { path: "user/me", element: <MyProfilePage /> },
+                    { path: "users/:id", element: <PublicProfilePage /> },
                     { path: "search", element: <SearchUser /> },
                     // { path: "chat", element: <ChatPage /> },
                 ],

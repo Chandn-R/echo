@@ -52,13 +52,7 @@ function Layout() {
                 </div>
             </main>
 
-            {/* 3. RIGHT SIDEBAR (Updated) */}
-            {/* - flex-col and h-screen are key.
-                - We let the content stack, and the footer (with mt-auto)
-                  will automatically be pushed to the bottom.
-            */}
             <aside className="w-72 bg-background flex flex-col p-6 border-l border-border sticky top-0 h-screen lg:flex">
-                {/* Section 1: Suggestions */}
                 <div className="flex flex-col gap-4">
                     <h3 className="text-lg font-semibold text-foreground">
                         Suggestions for you
@@ -95,7 +89,6 @@ function Layout() {
                     />
                 </div>
 
-                {/* A separator */}
                 <hr className="my-6" />
 
                 {/* Section 2: Trends */}

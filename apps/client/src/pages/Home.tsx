@@ -1,285 +1,132 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
-import { MessageCircle, Heart } from "lucide-react";
-import api from "@/services/api";
+import { usePosts } from "@/hooks/usePosts";
+import { PostCard } from "@/components/PostCard";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import api from "@/services/api";
 import { useAuthStore } from "@/stores/useAuthStore";
-
-interface Post {
-    _id: string;
-    user: {
-        _id: string;
-        username: string;
-        profilePicture: {
-            secure_url: string;
-        };
-    };
-    content: {
-        type: "text" | "image";
-        value: string;
-        _id: string;
-    }[];
-    likes: string[];
-    comments: {
-        _id: string;
-        user: {
-            _id: string;
-            username: string;
-            profilePicture: {
-                secure_url: string;
-            };
-        };
-        content: string;
-    }[];
-    createdAt: string;
-    likeCount: number;
-    commentCount: number;
-    isLiked: boolean;
-}
+import { useRef, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import type { Post } from "@/types";
 
 export default function Home() {
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasNextPage, setHasNextPage] = useState(true);
-    const [nextCursor, setNextCursor] = useState<string | null>(null);
-    const navigate = useNavigate();
     const user = useAuthStore((s) => s.user);
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+    } = usePosts();
 
-    const fetchPosts = async (cursor?: string) => {
-        try {
-            if (cursor) {
-                setLoadingMore(true);
-            } else {
-                setLoading(true);
-            }
-
-            const res = await api.get("/posts", {
-                params: {
-                    lastPostId: cursor,
-                    limit: 10,
-                },
-            });
-
-            const newPosts: Post[] = res.data.data.posts;
-
-            setPosts((prev) => (cursor ? [...prev, ...newPosts] : newPosts));
-            setNextCursor(res.data.data.nextCursor);
-            setHasNextPage(res.data.data.hasNextPage);
-        } catch (error) {
-            console.error("Error fetching posts:", error);
-            toast.error("Failed to fetch posts");
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    };
+    const observerElem = useRef<HTMLDivElement>(null);
 
     const handleLike = async (postId: string) => {
-        if (!user) {
-            toast.error("Please log in to like posts");
-            navigate("/login");
-            return;
-        }
-
+        if (!user) return toast.error("Please login first");
         try {
-            setPosts((prev) =>
-                prev.map((post) =>
-                    post._id === postId
-                        ? {
-                              ...post,
-                              isLiked: !post.isLiked,
-                              likeCount: post.isLiked
-                                  ? post.likeCount - 1
-                                  : post.likeCount + 1,
-                          }
-                        : post
-                )
-            );
-            await api.patch(`/posts/${postId}/like`);
-        } catch (error) {
-            console.error("Error liking post:", error);
+            await api.post(`users/posts/like/${postId}`);
+        } catch (err) {
+            console.error(err);
             toast.error("Failed to like post");
-            setPosts((prev) =>
-                prev.map((post) =>
-                    post._id === postId
-                        ? {
-                              ...post,
-                              isLiked: !post.isLiked,
-                              likeCount: post.isLiked
-                                  ? post.likeCount + 1
-                                  : post.likeCount - 1,
-                          }
-                        : post
-                )
-            );
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            day: "numeric",
-            month: "short",
-        }).format(date);
-    };
-
     useEffect(() => {
-        const handleScroll = () => {
-            if (
-                window.innerHeight + window.scrollY >=
-                    document.body.offsetHeight - 300 &&
-                !loadingMore &&
-                hasNextPage
-            ) {
-                fetchPosts(nextCursor || undefined);
-            }
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, [loadingMore, hasNextPage, nextCursor]);
-
-    useEffect(() => {
-        fetchPosts();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="flex-1 max-w-2xl min-h-screen p-4 space-y-4 mx-auto">
-                {[...Array(3)].map((_, i) => (
-                    <Card key={i} className="rounded-xl shadow-sm">
-                        <CardContent className="p-4 space-y-3">
-                            <div className="flex gap-3">
-                                <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
-                                <div className="space-y-2 flex-1">
-                                    <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
-                                    <div className="h-3 w-full bg-muted rounded animate-pulse" />
-                                    <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+        const el = observerElem.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage) fetchNextPage();
+            },
+            { rootMargin: "200px" }
         );
-    }
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasNextPage, fetchNextPage]);
+
+    if (isError) return <ErrorState />;
 
     return (
-        <div className="flex-1 max-w-3xl min-h-screen p-4 space-y-4 mx-auto">
-            {posts.map((post) => (
-                <Card
-                    key={post._id}
-                    className="rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                >
-                    <CardContent className="p-4">
-                        <div className="flex gap-3">
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage
-                                    src={post.user?.profilePicture?.secure_url}
-                                    className="h-full w-full object-cover rounded-full"
-                                    alt={post.user.username}
-                                />
-                                <AvatarFallback className="bg-muted">
-                                    {post.user.username.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
-
-                            <div className="flex-1 space-y-4 mt-1">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold">
-                                            <button
-                                                onClick={() => {
-                                                    if (!user) {
-                                                        navigate("/login");
-                                                    } else {
-                                                        navigate(
-                                                            `/users/${post.user._id}`
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                {post.user.username}
-                                            </button>
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                            · {formatDate(post.createdAt)}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="space-y-2 font-medium">
-                                    {post.content.map((block) => (
-                                        <div key={block._id}>
-                                            {block.type === "text" ? (
-                                                <p className="text-sm">
-                                                    {block.value}
-                                                </p>
-                                            ) : (
-                                                <img
-                                                    src={block.value}
-                                                    alt="Post content"
-                                                    className="rounded-md max-h-80 object-contain"
-                                                />
-                                            )}
+        <div className="flex flex-col min-h-screen w-full border-x border-border bg-background">
+            <div className="flex-1 px-4">
+                {isLoading ? (
+                    <div className="flex flex-col gap-5">
+                        {[1, 2, 3, 4].map((i) => (
+                            <PostSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex flex-col gap-5">
+                            {data?.pages.map((page, i) => (
+                                <div key={i} className="contents">
+                                    {page.posts.map((post: Post) => (
+                                        <div
+                                            key={post.postId}
+                                            className="bg-background border border-border/40 rounded-xl shadow-sm hover:shadow-md transition"
+                                        >
+                                            <PostCard
+                                                post={post}
+                                                onLike={handleLike}
+                                            />
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex justify-between pt-2">
-                                    <div className="flex gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className={`h-8 px-2 ${
-                                                post.isLiked
-                                                    ? "text-rose-500 "
-                                                    : "text-muted-foreground hover:text-rose-500"
-                                            }`}
-                                            onClick={() => handleLike(post._id)}
-                                        >
-                                            <Heart
-                                                className="w-4 h-4 mr-1"
-                                                fill={
-                                                    post.isLiked
-                                                        ? "currentColor"
-                                                        : "none"
-                                                }
-                                                stroke="currentColor"
-                                            />
-                                            <span className="text-xs">
-                                                {post.likeCount}
-                                            </span>
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 px-2 text-muted-foreground hover:text-blue-500"
-                                        >
-                                            <MessageCircle className="w-4 h-4 mr-1" />
-                                            <span className="text-xs">
-                                                {post.commentCount}
-                                            </span>
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    </CardContent>
-                </Card>
-            ))}
-            {loadingMore && (
-                <p className="text-center">Loading more posts...</p>
-            )}
-            {!hasNextPage && (
-                <p className="text-center text-muted-foreground">
-                    You've reached the end!
-                </p>
-            )}
+
+                        {/* Bottom loader */}
+                        <div
+                            ref={observerElem}
+                            className="py-6 flex justify-center min-h-[80px]"
+                        >
+                            {isFetchingNextPage ? (
+                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            ) : !hasNextPage && data?.pages[0]?.posts.length ? (
+                                <span className="text-sm text-muted-foreground font-medium">
+                                    You've reached the end
+                                </span>
+                            ) : null}
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// --- Helper Components ---
+
+function ErrorState() {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 text-center">
+            <p className="text-red-500 font-medium">Failed to load feed</p>
+            <button
+                onClick={() => window.location.reload()}
+                className="text-sm font-medium underline hover:text-primary transition-colors"
+            >
+                Retry
+            </button>
+        </div>
+    );
+}
+
+function PostSkeleton() {
+    return (
+        <div className="px-4 py-4 flex gap-3 animate-pulse border border-border/20 rounded-xl">
+            <div className="shrink-0">
+                <div className="w-10 h-10 rounded-full bg-muted" />
+            </div>
+            <div className="flex-1 space-y-3 pt-1">
+                <div className="flex items-center gap-2">
+                    <div className="h-4 w-28 bg-muted rounded-md" />
+                    <div className="h-4 w-20 bg-muted/60 rounded-md" />
+                </div>
+                <div className="space-y-2">
+                    <div className="h-4 w-full bg-muted/50 rounded-md" />
+                    <div className="h-4 w-2/3 bg-muted/50 rounded-md" />
+                </div>
+                <div className="h-52 w-full bg-muted/40 rounded-xl mt-1" />
+            </div>
         </div>
     );
 }
