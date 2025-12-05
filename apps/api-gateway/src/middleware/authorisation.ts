@@ -10,6 +10,9 @@ export const protectRoute = asyncHandler(async (req: Request, res: Response, nex
     const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
 
     const token = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
+    console.log(req.cookies?.accessToken);
+    console.log(req.headers.authorization);
+
 
     if (!token) {
         throw new ApiError(401, "Unauthorized: No token provided");
@@ -23,7 +26,7 @@ export const protectRoute = asyncHandler(async (req: Request, res: Response, nex
         }
         const payload = decoded as AuthPayload;
         req.user = { userId: payload.id };
-        console.log("Users token verified");
+        console.log("Users token verified--------", req.user);
         next();
 
     } catch (error) {

@@ -11,7 +11,6 @@ import { checkEnv } from "@repo/utils";
 
 checkEnv(["PORT", "ACCESS_TOKEN_SECRET", "CLIENT_URL"])
 
-
 const PORT = process.env.PORT;
 const app = express();
 
@@ -25,7 +24,7 @@ async function server() {
         credentials: true,
     }));
     app.use(helmet());
-    app.use(morgan("combined"));
+    app.use(morgan("dev"));
     app.use(cookieParser());
     app.disable("x-powered-by");
     app.use(limiter);
@@ -55,24 +54,29 @@ async function server() {
             target,
             changeOrigin: true,
             secure: false,
-            onProxyReq: (proxyReq: any, req: Request, res: Response) => {
+            on: {
+                proxyReq: (proxyReq: any, req: Request, res: Response) => {
 
-                if (req.headers['content-type']) {
-                    proxyReq.setHeader('Content-Type', req.headers['content-type']);
-                }
+                    if (req.headers['content-type']) {
+                        proxyReq.setHeader('Content-Type', req.headers['content-type']);
+                    }
+                    console.log("Inside proxy--------", req.user, req.user?.userId);
 
-                if (req.user && req.user.userId) {
-                    proxyReq.setHeader('x-user-id', req.user.userId);
-                }
+                    if (req.user && req.user.userId) {
+                        proxyReq.setHeader('x-user-id', req.user.userId);
+                    }
 
-                if (req.headers.cookie) {
-                    proxyReq.setHeader("cookie", req.headers.cookie);
+                    if (req.headers.cookie) {
+                        proxyReq.setHeader("cookie", req.headers.cookie);
+                    }
                 }
             }
         };
         if (protect) {
+            console.log("This is a proteced route");
             app.use(route, protectRoute, createProxyMiddleware(proxyOptions));
         } else {
+            console.log("This is --not-- a proteced route");
             app.use(route, createProxyMiddleware(proxyOptions));
         }
     });
