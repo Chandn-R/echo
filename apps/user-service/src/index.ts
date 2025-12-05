@@ -6,8 +6,13 @@ import { initializeDatabase } from "@repo/db";
 
 const PORT = process.env.PORT;
 
-checkEnv(["DATABASE_URL",
-    "PORT"]);
+checkEnv([
+    "DATABASE_URL",
+    "PORT",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET"
+]);
 
 async function server() {
     const { db, pool } = await initializeDatabase();
