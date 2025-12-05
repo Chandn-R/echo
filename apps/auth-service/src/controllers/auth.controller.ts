@@ -151,7 +151,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 export const refreshAccessToken = asyncHandler(
     async (req: Request, res: Response) => {
         const token = req.cookies?.refreshToken;
-        console.log(token)
+        console.log(`Inside refresh controller ${token}`)
         const db = req.app.locals.db;
 
 
